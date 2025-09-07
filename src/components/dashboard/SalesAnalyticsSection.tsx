@@ -183,10 +183,16 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     // If we have transaction data already attached to the row, use that
     if (rowData.rawData && rowData.rawData.length > 0) {
       specificFilteredData = rowData.rawData;
+      console.log(`Using pre-filtered rawData: ${specificFilteredData.length} transactions`);
     } else if (rowData.transactionData && rowData.transactionData.length > 0) {
       specificFilteredData = rowData.transactionData;
+      console.log(`Using pre-filtered transactionData: ${specificFilteredData.length} transactions`);
+    } else if (rowData.currentYearRawData && rowData.lastYearRawData) {
+      // For Year-on-Year data, combine current and last year data for this specific product/category
+      specificFilteredData = [...rowData.currentYearRawData, ...rowData.lastYearRawData];
+      console.log(`Using YoY data: ${rowData.currentYearRawData.length} current year + ${rowData.lastYearRawData.length} last year transactions`);
     } else {
-      // Apply specific filters based on row properties
+      // Apply specific filters based on row properties as fallback
       specificFilteredData = filteredData.filter(item => {
         let matches = true;
         
@@ -226,6 +232,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         
         return matches;
       });
+      console.log(`Using fallback filtering: ${specificFilteredData.length} transactions from ${filteredData.length} total`);
     }
     
     console.log(`Filtered ${specificFilteredData.length} transactions for drill-down from ${filteredData.length} total`);
