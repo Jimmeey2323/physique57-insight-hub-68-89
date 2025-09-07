@@ -175,6 +175,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
   const handleRowClick = (rowData: any) => {
     console.log('Row clicked with data:', rowData);
+    console.log('Available properties in rowData:', Object.keys(rowData));
     
     // More specific filtering based on the exact row data
     let specificFilteredData = filteredData;
@@ -194,44 +195,72 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     } else {
       // Apply specific filters based on row properties as fallback
       specificFilteredData = filteredData.filter(item => {
-        let matches = true;
+        let matches = false; // Start with false and require at least one match
         
-        // Product-specific filtering
-        if (rowData.name) {
-          const isProductMatch = item.cleanedProduct === rowData.name || 
-                                 item.paymentItem === rowData.name ||
-                                 item.membershipType === rowData.name;
-          const isCategoryMatch = item.cleanedCategory === rowData.name;
-          matches = matches && (isProductMatch || isCategoryMatch);
+        // Try multiple possible property names for product matching
+        const productIdentifiers = [
+          rowData.name,
+          rowData.product,
+          rowData.productName,
+          rowData.paymentItem,
+          rowData.cleanedProduct,
+          rowData.membership,
+          rowData.membershipType,
+          rowData.item
+        ].filter(Boolean);
+        
+        const categoryIdentifiers = [
+          rowData.category,
+          rowData.cleanedCategory,
+          rowData.paymentCategory
+        ].filter(Boolean);
+        
+        console.log('Product identifiers to match:', productIdentifiers);
+        console.log('Category identifiers to match:', categoryIdentifiers);
+        
+        // Product-specific filtering - try exact matches
+        for (const identifier of productIdentifiers) {
+          if (item.cleanedProduct === identifier || 
+              item.paymentItem === identifier ||
+              item.membershipType === identifier ||
+              (item.paymentItem && item.paymentItem.includes(identifier)) ||
+              (item.cleanedProduct && item.cleanedProduct.includes(identifier))) {
+            matches = true;
+            console.log(`Product match found: ${identifier} matches item ${item.paymentItem || item.cleanedProduct}`);
+            break;
+          }
+        }
+        
+        // Category-specific filtering if no product match
+        if (!matches) {
+          for (const identifier of categoryIdentifiers) {
+            if (item.cleanedCategory === identifier ||
+                item.paymentCategory === identifier ||
+                (item.cleanedCategory && item.cleanedCategory.includes(identifier))) {
+              matches = true;
+              drillDownTypeToSet = 'category';
+              console.log(`Category match found: ${identifier} matches item ${item.cleanedCategory}`);
+              break;
+            }
+          }
         }
         
         // Sales rep specific filtering
-        if (rowData.soldBy) {
-          matches = matches && item.soldBy === rowData.soldBy;
+        if (rowData.soldBy && item.soldBy === rowData.soldBy) {
+          matches = true;
           drillDownTypeToSet = 'member';
         }
         
         // Payment method specific filtering
-        if (rowData.paymentMethod) {
-          matches = matches && item.paymentMethod === rowData.paymentMethod;
+        if (rowData.paymentMethod && item.paymentMethod === rowData.paymentMethod) {
+          matches = true;
           drillDownTypeToSet = 'product';
-        }
-        
-        // Category specific filtering
-        if (rowData.category && !rowData.name) {
-          matches = matches && item.cleanedCategory === rowData.category;
-          drillDownTypeToSet = 'category';
-        }
-        
-        // Additional product identifiers
-        if (rowData.product) {
-          matches = matches && (item.cleanedProduct === rowData.product || 
-                               item.paymentItem === rowData.product);
         }
         
         return matches;
       });
       console.log(`Using fallback filtering: ${specificFilteredData.length} transactions from ${filteredData.length} total`);
+      
     }
     
     console.log(`Filtered ${specificFilteredData.length} transactions for drill-down from ${filteredData.length} total`);
