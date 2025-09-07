@@ -182,10 +182,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     let drillDownTypeToSet: 'metric' | 'product' | 'category' | 'member' = 'product';
     
     // If we have transaction data already attached to the row, use that
-    if (rowData.rawData && rowData.rawData.length > 0) {
+    if (rowData.rawData && Array.isArray(rowData.rawData) && rowData.rawData.length > 0) {
       specificFilteredData = rowData.rawData;
       console.log(`Using pre-filtered rawData: ${specificFilteredData.length} transactions`);
-    } else if (rowData.transactionData && rowData.transactionData.length > 0) {
+    } else if (Array.isArray(rowData) && rowData.length > 0) {
+      // If rowData itself is an array of transactions, use it directly
+      specificFilteredData = rowData;
+      console.log(`Using rowData array directly: ${specificFilteredData.length} transactions`);
+    } else if (rowData.transactionData && Array.isArray(rowData.transactionData) && rowData.transactionData.length > 0) {
       specificFilteredData = rowData.transactionData;
       console.log(`Using pre-filtered transactionData: ${specificFilteredData.length} transactions`);
     } else if (rowData.currentYearRawData && rowData.lastYearRawData) {
