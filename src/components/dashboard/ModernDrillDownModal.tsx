@@ -44,22 +44,58 @@ export const ModernDrillDownModal: React.FC<ModernDrillDownModalProps> = ({
   };
 
   const getSpecificData = () => {
+    // Use the most specific transaction data available (prioritize the new specific data)
+    const rawTransactionData = data.filteredTransactionData || data.rawData || data.transactionData || [];
+    
     // Extract targeted data based on the clicked element
     if (type === 'product' && data.name) {
-      // For product drill-down, filter data specific to that product
+      // For product drill-down, use already filtered data or filter by product name
       const productName = data.name;
-      const filteredData = data.rawData?.filter((item: any) => 
-        item.productName === productName || 
-        item.membershipName === productName ||
-        item.itemName === productName
-      ) || [];
+      let filteredData = rawTransactionData;
+      
+      // If we don't already have filtered data, filter it ourselves
+      if (!data.filteredTransactionData && rawTransactionData.length > 0) {
+        filteredData = rawTransactionData.filter((item: any) => 
+          item.productName === productName || 
+          item.membershipName === productName ||
+          item.itemName === productName ||
+          item.cleanedProduct === productName ||
+          item.paymentItem === productName
+        );
+      }
+      
+      console.log(`ModernDrillDownModal: Using ${filteredData.length} filtered transactions for product ${productName}`);
       
       return {
         ...data,
         filteredData,
-        specificRevenue: filteredData.reduce((sum: number, item: any) => sum + (item.paymentValue || 0), 0),
-        specificTransactions: filteredData.length,
-        specificCustomers: new Set(filteredData.map((item: any) => item.memberId || item.customerEmail)).size
+        specificRevenue: data.specificRevenue || filteredData.reduce((sum: number, item: any) => sum + (item.paymentValue || 0), 0),
+        specificTransactions: data.specificTransactions || filteredData.length,
+        specificCustomers: data.specificCustomers || new Set(filteredData.map((item: any) => item.memberId || item.customerEmail)).size
+      };
+    }
+    
+    if (type === 'category' && data.name) {
+      // For category drill-down, use already filtered data or filter by category name
+      const categoryName = data.name;
+      let filteredData = rawTransactionData;
+      
+      // If we don't already have filtered data, filter it ourselves
+      if (!data.filteredTransactionData && rawTransactionData.length > 0) {
+        filteredData = rawTransactionData.filter((item: any) => 
+          item.cleanedCategory === categoryName ||
+          item.category === categoryName
+        );
+      }
+      
+      console.log(`ModernDrillDownModal: Using ${filteredData.length} filtered transactions for category ${categoryName}`);
+      
+      return {
+        ...data,
+        filteredData,
+        specificRevenue: data.specificRevenue || filteredData.reduce((sum: number, item: any) => sum + (item.paymentValue || 0), 0),
+        specificTransactions: data.specificTransactions || filteredData.length,
+        specificCustomers: data.specificCustomers || new Set(filteredData.map((item: any) => item.memberId || item.customerEmail)).size
       };
     }
 
@@ -79,7 +115,14 @@ export const ModernDrillDownModal: React.FC<ModernDrillDownModalProps> = ({
       return trainerData;
     }
 
-    return data;
+    // Default case - return data with specific metrics if available
+    return {
+      ...data,
+      filteredData: rawTransactionData,
+      specificRevenue: data.specificRevenue,
+      specificTransactions: data.specificTransactions,
+      specificCustomers: data.specificCustomers
+    };
   };
 
   const specificData = getSpecificData();

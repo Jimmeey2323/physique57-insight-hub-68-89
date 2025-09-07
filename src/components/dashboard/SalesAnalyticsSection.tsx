@@ -175,30 +175,103 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
   const handleRowClick = (rowData: any) => {
     console.log('Row clicked with data:', rowData);
-    // Enhance the drill down data with filtered raw data
+    
+    // More specific filtering based on the exact row data
+    let specificFilteredData = filteredData;
+    let drillDownTypeToSet = 'product';
+    
+    // If we have transaction data already attached to the row, use that
+    if (rowData.rawData && rowData.rawData.length > 0) {
+      specificFilteredData = rowData.rawData;
+    } else if (rowData.transactionData && rowData.transactionData.length > 0) {
+      specificFilteredData = rowData.transactionData;
+    } else {
+      // Apply specific filters based on row properties
+      specificFilteredData = filteredData.filter(item => {
+        let matches = true;
+        
+        // Product-specific filtering
+        if (rowData.name) {
+          const isProductMatch = item.cleanedProduct === rowData.name || 
+                                 item.paymentItem === rowData.name ||
+                                 item.membershipName === rowData.name ||
+                                 item.itemName === rowData.name;
+          const isCategoryMatch = item.cleanedCategory === rowData.name;
+          matches = matches && (isProductMatch || isCategoryMatch);
+        }
+        
+        // Sales rep specific filtering
+        if (rowData.soldBy) {
+          matches = matches && item.soldBy === rowData.soldBy;
+          drillDownTypeToSet = 'soldBy';
+        }
+        
+        // Payment method specific filtering
+        if (rowData.paymentMethod) {
+          matches = matches && item.paymentMethod === rowData.paymentMethod;
+          drillDownTypeToSet = 'paymentMethod';
+        }
+        
+        // Category specific filtering
+        if (rowData.category && !rowData.name) {
+          matches = matches && item.cleanedCategory === rowData.category;
+          drillDownTypeToSet = 'category';
+        }
+        
+        // Additional product identifiers
+        if (rowData.product) {
+          matches = matches && (item.cleanedProduct === rowData.product || 
+                               item.paymentItem === rowData.product);
+        }
+        
+        return matches;
+      });
+    }
+    
+    console.log(`Filtered ${specificFilteredData.length} transactions for drill-down from ${filteredData.length} total`);
+    
     const enhancedData = {
       ...rowData,
-      rawData: filteredData.filter(item => {
-        if (rowData.soldBy) return item.soldBy === rowData.soldBy;
-        if (rowData.paymentMethod) return item.paymentMethod === rowData.paymentMethod;
-        if (rowData.name) return item.cleanedProduct === rowData.name || item.cleanedCategory === rowData.name;
-        return true;
-      })
+      rawData: specificFilteredData,
+      filteredTransactionData: specificFilteredData,
+      // Calculate specific metrics for this filtered data
+      specificRevenue: specificFilteredData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
+      specificTransactions: specificFilteredData.length,
+      specificCustomers: new Set(specificFilteredData.map(item => item.memberId || item.customerEmail)).size,
+      specificProducts: new Set(specificFilteredData.map(item => item.cleanedProduct || item.paymentItem)).size
     };
+    
     setDrillDownData(enhancedData);
-    setDrillDownType('product');
+    setDrillDownType(drillDownTypeToSet);
   };
 
   const handleMetricClick = (metricData: any) => {
     console.log('Metric clicked with data:', metricData);
-    // Enhance metric data with raw sales data
+    
+    // For metric clicks, provide more specific data if available
+    let specificData = filteredData;
+    
+    // If the metric has specific filtering criteria, apply it
+    if (metricData.rawData && metricData.rawData.length > 0) {
+      specificData = metricData.rawData;
+    } else if (metricData.filteredData && metricData.filteredData.length > 0) {
+      specificData = metricData.filteredData;
+    }
+    
+    // Enhance metric data with specific sales data
     const enhancedData = {
       ...metricData,
-      rawData: filteredData,
-      grossRevenue: filteredData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
-      transactions: filteredData.length,
-      uniqueMembers: new Set(filteredData.map(item => item.memberId)).size
+      rawData: specificData,
+      filteredTransactionData: specificData,
+      grossRevenue: specificData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
+      transactions: specificData.length,
+      uniqueMembers: new Set(specificData.map(item => item.memberId || item.customerEmail)).size,
+      specificRevenue: specificData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
+      specificTransactions: specificData.length,
+      specificCustomers: new Set(specificData.map(item => item.memberId || item.customerEmail)).size
     };
+    
+    console.log(`Metric drill-down with ${specificData.length} specific transactions`);
     setDrillDownData(enhancedData);
     setDrillDownType('metric');
   };
