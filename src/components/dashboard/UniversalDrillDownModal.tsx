@@ -98,7 +98,6 @@ export const UniversalDrillDownModal: React.FC<UniversalDrillDownModalProps> = (
     
     console.log(`UniversalDrillDownModal: Filtered ${filtered.length} transactions from ${relatedData.length} total`);
     return filtered;
-    }
   }, [data, relatedData, type]);
 
   // Generate summary metrics

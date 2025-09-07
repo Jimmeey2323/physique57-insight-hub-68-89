@@ -178,7 +178,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     
     // More specific filtering based on the exact row data
     let specificFilteredData = filteredData;
-    let drillDownTypeToSet = 'product';
+    let drillDownTypeToSet: 'metric' | 'product' | 'category' | 'member' = 'product';
     
     // If we have transaction data already attached to the row, use that
     if (rowData.rawData && rowData.rawData.length > 0) {
@@ -200,8 +200,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         if (rowData.name) {
           const isProductMatch = item.cleanedProduct === rowData.name || 
                                  item.paymentItem === rowData.name ||
-                                 item.membershipName === rowData.name ||
-                                 item.itemName === rowData.name;
+                                 item.membershipType === rowData.name;
           const isCategoryMatch = item.cleanedCategory === rowData.name;
           matches = matches && (isProductMatch || isCategoryMatch);
         }
@@ -209,13 +208,13 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         // Sales rep specific filtering
         if (rowData.soldBy) {
           matches = matches && item.soldBy === rowData.soldBy;
-          drillDownTypeToSet = 'soldBy';
+          drillDownTypeToSet = 'member';
         }
         
         // Payment method specific filtering
         if (rowData.paymentMethod) {
           matches = matches && item.paymentMethod === rowData.paymentMethod;
-          drillDownTypeToSet = 'paymentMethod';
+          drillDownTypeToSet = 'product';
         }
         
         // Category specific filtering
